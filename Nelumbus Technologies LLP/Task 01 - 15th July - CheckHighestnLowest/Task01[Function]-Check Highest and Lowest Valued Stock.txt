@@ -1,0 +1,5 @@
+def CheckHighestnLowest(StockNames, StockPrices, StockPositions):
+    StockOrderValue = [Price*Position for Price, Position in zip(StockPrices,  StockPositions)]
+    HighestIndex = StockOrderValue.index(max(StockOrderValue))
+    LowestIndex  = StockOrderValue.index(min(StockOrderValue))
+    return StockNames[HighestIndex], StockNames[LowestIndex]

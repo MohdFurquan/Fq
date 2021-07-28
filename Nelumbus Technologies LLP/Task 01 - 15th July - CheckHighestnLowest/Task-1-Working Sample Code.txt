@@ -1,0 +1,29 @@
+#List containing name of stocks
+StockNames = ['AAPL','IWM','IBM']
+
+#List containing Unit Stock Prices
+StockPrices = [149.15, 234.54, 175]
+
+#List containing Number of Positions for each stock
+StockPositions = [5, 10, 20]
+
+def CheckHighestnLowest(StockNames, StockPrices, StockPositions):
+
+    #Multiplying corresponding Unit Stock Prices with Positions to get 'Total Order Value' and storing it in a new list.
+    StockOrderValue = [Price*Position for Price, Position in zip(StockPrices, StockPositions)]
+
+    #Finding index for the Maximum Value and Minimum Value Stock from the list.
+    HighestIndex = StockOrderValue.index(max(StockOrderValue))
+    LowestIndex  = StockOrderValue.index(min(StockOrderValue))
+
+    #We can use this for printing details for the Maximum and Minimum Value stock. 
+
+    print("Lowest Value Stock in your Portfolio:\nName: {}\nUnit Stock Price: {}\nTotal Positions: {}\nTotal Order Value: {}"
+    .format(StockNames[LowestIndex],StockPrices[LowestIndex],StockPositions[LowestIndex],StockOrderValue[LowestIndex]))
+
+    print("\nHighest Value Stock in your Portfolio:\nName: {}\nUnit Stock Price: {}\nTotal Positions: {}\nTotal Order Value: {}"
+    .format(StockNames[HighestIndex],StockPrices[HighestIndex],StockPositions[HighestIndex],StockOrderValue[HighestIndex]))
+
+    return StockNames[HighestIndex], StockNames[LowestIndex]
+
+print("\nFunction should return a tuple with IBM and AAPL\n",CheckHighestnLowest(StockNames,StockPrices,StockPositions))

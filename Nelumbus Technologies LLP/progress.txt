@@ -1,0 +1,107 @@
+class PensiveApricotMosquito(QCAlgorithm):
+
+    def Initialize(self):
+        self.SetStartDate(2021, 1, 15)
+        self.SetEndDate(2021,2,25)
+        
+        self.CashInHand = 100000
+        self.SetCash(self.CashInHand) 
+        
+        self.StockNames = ["AAPL","IWM","IBM","FB","GOOG","OTEX","AMX","ORCL","TWTR"]
+        
+        for StockName in self.StockNames:
+            self.AddEquity(StockName,Resolution.Hour)
+
+    def OnData(self, data):
+        
+        PerStockInvestment = self.CashInHand/len(self.StockNames)
+
+        StockPrices = []
+        for StockName in self.StockNames:
+            StockPrices.append(self.Securities[StockName].Price)
+
+        StockPositions = []
+        
+        if not self.Portfolio.Invested:
+            
+            global OrderTicketQuantity
+            OrderTicketQuantity = []
+            
+            for StockPrice in StockPrices:            
+                StockPositions.append(int(PerStockInvestment//StockPrice))
+            
+            indx = 0
+            for StockName in self.StockNames:
+                OrderTicket = self.MarketOrder(StockName,StockPositions[indx])
+                OrderTicketQuantity.append(OrderTicket.Quantity)
+                indx = indx + 1
+        
+        else:
+            
+            PerStockInvestment = self.CashInHand/len(self.StockNames)
+            
+            for OrderQuantity in OrderTicketQuantity:
+                StockPositions.append(OrderQuantity)
+            
+            Threshold, SellHigherValuedStock,BuyLowerValuedStock, HighestValuedTicker, LowestValuedTicker= self.Balancing(self.StockNames, StockPrices, OrderTicketQuantity)
+            if(((Threshold/self.CashInHand) * 100) > 0.01):
+                
+                if(SellHigherValuedStock != 0):
+                    self.MarketOrder(HighestValuedTicker,-SellHigherValuedStock)
+                
+                else:
+                    self.Debug("Algorithm suggests to sell 0 {} stocks.".format(HighestValuedTicker))
+                
+                if(BuyLowerValuedStock != 0):
+                    while(1):
+                        
+                        if self.Portfolio.Cash > (self.Securities[LowestValuedTicker].Price * BuyLowerValuedStock):
+                            self.MarketOrder(LowestValuedTicker, BuyLowerValuedStock)
+                            break
+                        
+                        BuyLowerValuedStock -= 1
+                
+                else:
+                    self.Debug("Algorithm suggests to purchase 0 {} stocks.".format(LowestValuedTicker))
+            
+    def CheckHighestnLowest(self, StockNames, StockPrices, StockPositions):
+         StockOrderValue = [Price*Position for Price, Position in zip(StockPrices, StockPositions)]
+    
+        HighestIndex = StockOrderValue.index(max(StockOrderValue))
+        LowestIndex  = StockOrderValue.index(min(StockOrderValue))
+    
+        return StockNames[HighestIndex], StockNames[LowestIndex]
+    
+    def Balancing(self, StockNames, StockPrices, StockPositions):
+    
+        HighestValuedStock,LowestValuedStock = self.CheckHighestnLowest(StockNames, StockPrices, StockPositions)
+    
+        HighestIndex = StockNames.index(HighestValuedStock)
+        LowestIndex = StockNames.index(LowestValuedStock)
+        
+        StockOrderValueHighest = StockPrices[HighestIndex] * StockPositions[HighestIndex]
+        StockOrderValueLowest = StockPrices[LowestIndex] * StockPositions[LowestIndex]
+        
+        Threshold = StockOrderValueHighest - StockOrderValueLowest
+        # self.Debug("\nHighest Value Stock in your Portfolio:\nName: {}\nUnit Stock Price: {}\nTotal Positions: {}\nTotal Order Value: {}\n"
+        #       .format(StockNames[HighestIndex],StockPrices[HighestIndex],StockPositions[HighestIndex],StockOrderValueHighest))
+    
+        # self.Debug("Lowest Value Stock in your Portfolio:\nName: {}\nUnit Stock Price: {}\nTotal Positions: {}\nTotal Order Value: {}\n"
+        #       .format(StockNames[LowestIndex],StockPrices[LowestIndex],StockPositions[LowestIndex],StockOrderValueLowest))
+    
+        AverageOfHighestnLowest = (StockOrderValueHighest + StockOrderValueLowest)/2
+        DeviationOfHighest = StockOrderValueHighest - AverageOfHighestnLowest
+        DeviationOfLowest = AverageOfHighestnLowest - StockOrderValueLowest
+       
+        SellHigherValuedStock = int(DeviationOfHighest//StockPrices[HighestIndex])
+
+        BuyLowerValuedStock = int(DeviationOfLowest//StockPrices[LowestIndex])
+
+        # self.Debug("Algorithm suggests to sell out {} of {} \'{}\' stocks."
+        #       .format(SellHigherValuedStock,StockPositions[HighestIndex],StockNames[HighestIndex]))
+    
+        # self.Debug("Algorithm suggests to purchase {} \'{}\' stocks."
+        #       .format(BuyLowerValuedStock, StockNames[LowestIndex]))
+  
+        return Threshold, SellHigherValuedStock, BuyLowerValuedStock, StockNames[HighestIndex], StockNames[LowestIndex]
+  
